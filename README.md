@@ -2,6 +2,8 @@
 
 WPT Results Analyzer is a Python tool for analyzing and comparing Web Platform Tests (WPT) result files. It provides detailed insights into test and subtest outcomes, making it easier to track changes and improvements in web platform compatibility testing locally.
 
+![Comparison Subtests](assets/single-file-summary.png)
+
 ## Features
 
 - Analyze single WPT result files
@@ -43,6 +45,7 @@ NOTE: You need to use **--log-wptreport** to get the correct output format.
 ```bash
 python wpt_analyze.py path/to/old_results.json path/to/new_results.json
 ```
+![Comparison Subtests](assets/comparison-subtests.png)
 
 ### Additional options
 
@@ -53,8 +56,10 @@ python wpt_analyze.py path/to/old_results.json path/to/new_results.json
 Example with options:
 
 ```bash
-python wpt_analyze.py wpt_results.json --detail-level changes --max-details 5 --show-subtests
+python wpt_analyze.py wpt_results_a.json wpt_results_b.json --detail-level all --max-details 3 --show-subtests
 ```
+
+![Comparison Subtests](assets/comparison-subtests-detailed.png)
 
 ## License
 
