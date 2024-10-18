@@ -4,7 +4,12 @@ from typing import Dict, List, Any, Callable
 from collections import Counter
 
 GREEN, RED, ORANGE, BOLD, RESET = (
-GREEN, RED, ORANGE, RESET = "\033[92m", "\033[91m", "\033[93m", "\033[0m"
+    "\033[92m",
+    "\033[91m",
+    "\033[93m",
+    "\033[1m",
+    "\033[0m",
+)
 REGRESSION, IMPROVEMENT, LATERAL, NO_CHANGE = (
     "Regression",
     "Improvement",
@@ -96,8 +101,8 @@ class WPTReportParser:
         output = []
 
         def add_summary(title: str, total: int, status_summary: Dict[str, int]):
-            output.append(f"\n{title}: {total}")
-            output.append(f"\n{title} Status Summary:")
+            output.append(f"\n{BOLD}{title}{RESET}: {total}")
+            output.append(f"\n{BOLD}{title} Status Summary:{RESET}")
             for status in sorted(
                 status_summary.keys(), key=lambda s: (STATUS_RANK.get(s, 3), s)
             ):
@@ -106,7 +111,7 @@ class WPTReportParser:
                 output.append(f"  {status:<10} {color}{count}{RESET}")
 
         def add_details(title: str, details: List[Dict[str, Any]]):
-            output.append(f"\n{title}:")
+            output.append(f"\n{BOLD}{title}{RESET}:")
             for item in details[:max_details]:
                 color = GREEN if item["status"] in [PASS, OK] else RED
                 if "subtest" in item:
@@ -228,7 +233,7 @@ class WPTReportComparator:
                 )
 
     def format_analysis(self, analysis: Dict[str, Any], title: str) -> List[str]:
-        output = [f"\n{title}:"]
+        output = [f"\n{BOLD}{title}{RESET}:"]
 
         for change_type in ["new", "removed"]:
             count = len(analysis[change_type])
@@ -276,7 +281,7 @@ class WPTReportComparator:
 
         def add_summary(title: str, total_getter: Callable, status_getter: Callable):
             total = self.compare_counts(total_getter)
-            output.append(f"{title}:")
+            output.append(f"\n{BOLD}{title}{RESET}:")
             output.append(self._format_count_change("Total", total))
             status = self.compare_summaries(status_getter)
             output.extend(
@@ -284,18 +289,18 @@ class WPTReportComparator:
             )
 
         add_summary(
-            "Test Summary",
+            "Tests",
             WPTReportParser.get_total_tests,
             WPTReportParser.get_status_summary,
         )
         test_analysis = self.compare_results(
             self.parser_a.get_results(), self.parser_b.get_results()
         )
-        output.extend(self.format_analysis(test_analysis, "Detailed Test Analysis"))
+        output.extend(self.format_analysis(test_analysis, "Detailed Test Summary"))
 
         if self.show_subtests:
             add_summary(
-                "Subtest Summary",
+                "Subtests",
                 WPTReportParser.get_total_subtests,
                 lambda parser: parser.get_status_summary(for_subtests=True),
             )
@@ -304,7 +309,7 @@ class WPTReportComparator:
                 self.parser_b.get_results(for_subtests=True),
             )
             output.extend(
-                self.format_analysis(subtest_analysis, "Detailed Subtest Analysis")
+                self.format_analysis(subtest_analysis, "Detailed Subtest Summary")
             )
 
         return "\n".join(output)
@@ -315,7 +320,7 @@ class WPTReportComparator:
     def _format_status_summary(
         self, title: str, summary: Dict[str, Dict[str, int]]
     ) -> List[str]:
-        output = [f"\n{title}:"]
+        output = [f"\n{BOLD}{title}{RESET}:"]
         for status, data in sorted(
             summary.items(), key=lambda x: (STATUS_RANK.get(x[0], 3), x[0])
         ):
