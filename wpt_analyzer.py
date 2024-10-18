@@ -71,6 +71,70 @@ class WPTReportParser:
             }
         return {result["test"]: result["status"] for result in self.results}
 
+    def get_details(self, for_subtests: bool = False) -> List[Dict[str, Any]]:
+        if for_subtests:
+            details = [
+                {
+                    "test": result["test"],
+                    "subtest": subtest["name"],
+                    "status": subtest["status"],
+                }
+                for result in self.results
+                for subtest in result.get("subtests", [])
+            ]
+        else:
+            details = self.results
+        return sorted(
+            details, key=lambda x: (STATUS_RANK.get(x["status"], 3), x["test"])
+        )
+
+    def format_single_file_report(
+        self,
+        detail_level: str = "summary",
+        show_subtests: bool = False,
+        max_details: int = 10,
+    ) -> str:
+        output = []
+
+        def add_summary(title: str, total: int, status_summary: Dict[str, int]):
+            output.append(f"\n{title}: {total}")
+            output.append(f"\n{title} Status Summary:")
+            for status in sorted(
+                status_summary.keys(), key=lambda s: (STATUS_RANK.get(s, 3), s)
+            ):
+                count = status_summary[status]
+                color = GREEN if status in [PASS, OK] else RED
+                output.append(f"  {status:<10} {color}{count}{RESET}")
+
+        def add_details(title: str, details: List[Dict[str, Any]]):
+            output.append(f"\n{title}:")
+            for item in details[:max_details]:
+                color = GREEN if item["status"] in [PASS, OK] else RED
+                if "subtest" in item:
+                    output.append(
+                        f"  {color}{item['test']}::{item['subtest']} ({item['status']}){RESET}"
+                    )
+                else:
+                    output.append(f"  {color}{item['test']} ({item['status']}){RESET}")
+            if len(details) > max_details:
+                output.append(f"  ... and {len(details) - max_details} more")
+
+        # Test summary
+        add_summary("Tests", self.get_total_tests(), self.get_status_summary())
+        if detail_level in ["all", "changes"]:
+            add_details("Test Details", self.get_details())
+
+        if show_subtests:
+            add_summary(
+                "Subtests",
+                self.get_total_subtests(),
+                self.get_status_summary(for_subtests=True),
+            )
+            if detail_level in ["all", "changes"]:
+                add_details("Subtest Details", self.get_details(for_subtests=True))
+
+        return "\n".join(output)
+
 
 class WPTReportComparator:
     def __init__(
@@ -269,7 +333,9 @@ def main():
         description="Analyze WPT report JSON files.",
         epilog="Example usage: python wpt-analyze.py file_a.json [file_b.json]",
     )
-    parser.add_argument("file_a", help="Path to the first WPT report JSON file")
+    parser.add_argument(
+        "file_a", help="Path to the first (or only) WPT report JSON file"
+    )
     parser.add_argument(
         "file_b", nargs="?", help="Path to the second WPT report JSON file (optional)"
     )
@@ -297,6 +363,7 @@ def main():
         with open(args.file_a, "r") as f:
             parser_a = WPTReportParser(f.read())
 
+        if args.file_b:
             with open(args.file_b, "r") as f:
                 parser_b = WPTReportParser(f.read())
             comparator = WPTReportComparator(
@@ -307,10 +374,16 @@ def main():
                 args.show_subtests,
             )
             print(comparator.format_comparison())
+        else:
+            print(
+                parser_a.format_single_file_report(
+                    args.detail_level, args.show_subtests, args.max_details
+                )
+            )
 
     except FileNotFoundError as e:
         print(f"Error: {e}")
-        print("Please make sure the input file exist and are accessible.")
+        print("Please make sure the input file(s) exist and are accessible.")
     except json.JSONDecodeError as e:
         print(f"Error: Invalid JSON in input file(s) - {e}")
 
