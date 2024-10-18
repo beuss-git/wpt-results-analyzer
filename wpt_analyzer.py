@@ -3,7 +3,7 @@ import argparse
 from typing import Dict, List, Any, Callable
 from collections import Counter
 
-# Constants
+GREEN, RED, ORANGE, BOLD, RESET = (
 GREEN, RED, ORANGE, RESET = "\033[92m", "\033[91m", "\033[93m", "\033[0m"
 REGRESSION, IMPROVEMENT, LATERAL, NO_CHANGE = (
     "Regression",
@@ -20,7 +20,6 @@ PASS, OK, FAIL, TIMEOUT, ERROR, CRASH = (
     "CRASH",
 )
 
-# Status rankings
 STATUS_RANK = {PASS: 0, OK: 1, FAIL: 2, TIMEOUT: 2, ERROR: 2, CRASH: 2}
 
 
