@@ -61,6 +61,15 @@ python wpt_analyze.py wpt_results_a.json wpt_results_b.json --detail-level all -
 
 ![Comparison Subtests](assets/comparison-subtests-detailed.png)
 
+### Testing
+```bash
+python -m unittest discover tests
+```
+Alternatively you can use pytest: `pip install pytest` (preferably in a virtual environment).
+```bash
+pytest
+```
+
 ## License
 
 This project is licensed under the BSD 2-Clause - see the [LICENSE](LICENSE) file for details.
