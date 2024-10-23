@@ -52,6 +52,7 @@ python wpt_analyze.py path/to/old_results.json path/to/new_results.json
 - `--detail-level {summary,new,removed,changes,all}`: Set the level of detail in the output (default: summary)
 - `--max-details N`: Set the maximum number of detailed items to display (default: 3)
 - `--show-subtests`: Include subtest information in the analysis
+- `--failures-only`: Only show details for failed tests
 
 Example with options:
 

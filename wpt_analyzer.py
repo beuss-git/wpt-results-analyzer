@@ -97,6 +97,7 @@ class WPTReportParser:
         detail_level: str = "summary",
         show_subtests: bool = False,
         max_details: int = 10,
+        show_passing: bool = True,
     ) -> str:
         output = []
 
@@ -111,8 +112,18 @@ class WPTReportParser:
                 output.append(f"  {status:<10} {color}{count}{RESET}")
 
         def add_details(title: str, details: List[Dict[str, Any]]):
+            if not details:
+                return
+
             output.append(f"\n{BOLD}{title}{RESET}:")
-            for item in details[:max_details]:
+
+            filtered_details = (
+                [d for d in details if d["status"] not in [PASS, OK]]
+                if not show_passing
+                else details
+            )
+
+            for item in filtered_details[:max_details]:
                 color = GREEN if item["status"] in [PASS, OK] else RED
                 if "subtest" in item:
                     output.append(
@@ -120,8 +131,8 @@ class WPTReportParser:
                     )
                 else:
                     output.append(f"  {color}{item['test']} ({item['status']}){RESET}")
-            if len(details) > max_details:
-                output.append(f"  ... and {len(details) - max_details} more")
+            if len(filtered_details) > max_details:
+                output.append(f"  ... and {len(filtered_details) - max_details} more")
 
         # Test summary
         add_summary("Tests", self.get_total_tests(), self.get_status_summary())
@@ -148,12 +159,14 @@ class WPTReportComparator:
         detail_level: str = "summary",
         max_details: int = 10,
         show_subtests: bool = False,
+        show_passing: bool = False,
     ):
         self.parser_a, self.parser_b = parser_a, parser_b
-        self.detail_level, self.max_details, self.show_subtests = (
+        self.detail_level, self.max_details, self.show_subtests, self.show_passing = (
             detail_level,
             max_details,
             show_subtests,
+            show_passing,
         )
 
     def compare_counts(self, getter: Callable) -> Dict[str, int]:
@@ -203,17 +216,23 @@ class WPTReportComparator:
                 (item, status) for item, status in items if status not in [PASS, OK]
             ]
 
-            for category, color in [(passing, GREEN), (non_passing, RED)]:
-                if category:
+            if self.show_passing and passing:
+                output.append("    Passing:")
+                for item, status in sorted(passing)[: self.max_details]:
+                    output.append(f"      {GREEN}{item} ({status}){RESET}")
+                if len(passing) > self.max_details:
                     output.append(
-                        f"    {'Passing' if color == GREEN else 'Non-passing'}:"
+                        f"      {GREEN}... and {len(passing) - self.max_details} more{RESET}"
                     )
-                    for item, status in sorted(category)[: self.max_details]:
-                        output.append(f"      {color}{item} ({status}){RESET}")
-                    if len(category) > self.max_details:
-                        output.append(
-                            f"      {color}... and {len(category) - self.max_details} more{RESET}"
-                        )
+
+            if non_passing:
+                output.append("    Non-passing:")
+                for item, status in sorted(non_passing)[: self.max_details]:
+                    output.append(f"      {RED}{item} ({status}){RESET}")
+                if len(non_passing) > self.max_details:
+                    output.append(
+                        f"      {RED}... and {len(non_passing) - self.max_details} more{RESET}"
+                    )
 
     def _add_change_details(
         self, output: List[str], analysis: Dict[str, Any], change_type: str, color: str
@@ -223,14 +242,17 @@ class WPTReportComparator:
             for test, old, new in analysis["status_changes"]
             if classify_change(old, new)[0] == change_type
         ]
-        if changes:
-            output.append(f"\n  {change_type}s:")
-            for test, _, new in sorted(changes)[: self.max_details]:
-                output.append(f"    {color}{test}: {new}{RESET}")
-            if len(changes) > self.max_details:
-                output.append(
-                    f"    {color}... and {len(changes) - self.max_details} more{RESET}"
-                )
+
+        if not changes or (not self.show_passing and change_type == IMPROVEMENT):
+            return
+
+        output.append(f"\n  {change_type}s:")
+        for test, _, new in sorted(changes)[: self.max_details]:
+            output.append(f"    {color}{test}: {new}{RESET}")
+        if len(changes) > self.max_details:
+            output.append(
+                f"    {color}... and {len(changes) - self.max_details} more{RESET}"
+            )
 
     def format_analysis(self, analysis: Dict[str, Any], title: str) -> List[str]:
         output = [f"\n{BOLD}{title}{RESET}:"]
@@ -361,6 +383,12 @@ def main():
         default=False,
         help="Include subtest information in the output",
     )
+    parser.add_argument(
+        "--failures-only",
+        action="store_true",
+        default=False,
+        help="Show only failing/regressing tests in detailed output",
+    )
     args = parser.parse_args()
 
     try:
@@ -376,12 +404,16 @@ def main():
                 args.detail_level,
                 args.max_details,
                 args.show_subtests,
+                not args.failures_only,
             )
             print(comparator.format_comparison())
         else:
             print(
                 parser_a.format_single_file_report(
-                    args.detail_level, args.show_subtests, args.max_details
+                    args.detail_level,
+                    args.show_subtests,
+                    args.max_details,
+                    not args.failures_only,
                 )
             )
 
