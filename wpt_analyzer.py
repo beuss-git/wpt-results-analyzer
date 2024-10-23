@@ -1,3 +1,4 @@
+import sys
 import json
 import argparse
 from typing import Dict, List, Any, Callable
@@ -373,9 +374,9 @@ def main():
     )
     parser.add_argument(
         "--max-details",
-        type=int,
-        default=3,
-        help="Maximum number of details to print for each change type",
+        type=str,
+        default="3",
+        help="Maximum number of details to print for each change type (use 'all' to show all details)",
     )
     parser.add_argument(
         "--show-subtests",
@@ -391,6 +392,21 @@ def main():
     )
     args = parser.parse_args()
 
+    max_details = 0
+    try:
+        if args.max_details.lower() == "all":
+            max_details = sys.maxsize
+        else:
+            max_details = int(args.max_details)
+            if max_details < 0:
+                raise ValueError("--max-details must be a positive number or 'all'")
+    except ValueError as e:
+        if "invalid literal for int()" in str(e):
+            print("Error: --max-details must be a number or 'all'")
+        else:
+            print(f"Error: {str(e)}")
+        return 1
+
     try:
         with open(args.file_a, "r") as f:
             parser_a = WPTReportParser(f.read())
@@ -402,7 +418,7 @@ def main():
                 parser_a,
                 parser_b,
                 args.detail_level,
-                args.max_details,
+                max_details,
                 args.show_subtests,
                 not args.failures_only,
             )
