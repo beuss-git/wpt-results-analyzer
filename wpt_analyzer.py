@@ -272,7 +272,7 @@ class WPTReportComparator:
                 status_color = GREEN if status in [PASS, OK] else RED
                 output.append(f"    {status}: {status_color}{count}{RESET}")
 
-            if self.detail_level in ["all", change_type]:
+            if self.detail_level in ["all", "changes", change_type]:
                 self._add_details(output, analysis[change_type], change_type)
 
         output.append("  Changed status:")
