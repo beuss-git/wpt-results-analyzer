@@ -57,7 +57,11 @@ python wpt_analyze.py path/to/old_results.json path/to/new_results.json
 Example with options:
 
 ```bash
-python wpt_analyze.py wpt_results_a.json wpt_results_b.json --detail-level all --max-details 3 --show-subtests
+# Show all details including subtests
+python wpt_analyze.py wpt_results_a.json wpt_results_b.json --detail-level all --max-details all --show-subtests
+
+# Show only failed tests with up to 10 details per category
+python wpt_analyze.py wpt_results_a.json wpt_results_b.json --detail-level changes --max-details 10 --failures-only
 ```
 
 ![Comparison Subtests](assets/comparison-subtests-detailed.png)
